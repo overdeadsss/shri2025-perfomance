@@ -73,11 +73,12 @@
     const Event = React.memo(({ icon, iconLabel, title, subtitle, slim, onSize, id }) => {
         const ref = React.useRef();
     
-        React.useEffect(() => {
-            const width = ref.current.offsetWidth;
-            const height = ref.current.offsetHeight;
-            if (onSize) {
-                onSize({ width, height });
+        React.useLayoutEffect(() => {
+            if (onSize && ref.current) {
+                onSize({
+                    width: ref.current.offsetWidth,
+                    height: ref.current.offsetHeight
+                });
             }
         }, [onSize]);
     
@@ -207,8 +208,11 @@
     function Main() {
         const ref = React.useRef();
         const initedRef = React.useRef(false);
-        const [activeTab, setActiveTab] = React.useState('');
+        const [activeTab, setActiveTab] = React.useState(() =>
+            new URLSearchParams(location.search).get('tab') || 'all'
+        );
         const [hasRightScroll, setHasRightScroll] = React.useState(false);
+        const sizesRef = React.useRef([]);
 
         React.useEffect(() => {
             if (!activeTab && !initedRef.current) {
@@ -221,20 +225,18 @@
             setActiveTab(event.target.value);
         };
 
-        let sizes = [];
-        const onSize = size => {
-            sizes = [...sizes, size];
-        };
+        const onSize = React.useCallback(size => {
+            sizesRef.current.push(size);
+        }, []);
 
         React.useEffect(() => {
-            const sumWidth = sizes.reduce((acc, item) => acc + item.width, 0);
-            const sumHeight = sizes.reduce((acc, item) => acc + item.height, 0);
+            const sumWidth = sizesRef.current.reduce((acc, s) => acc + s.width, 0);
+            const newHasRightScroll = sumWidth > ref.current?.offsetWidth;
+    
+            setHasRightScroll(newHasRightScroll);
+        }, [activeTab]);
 
-            const newHasRightScroll = sumWidth > ref.current.offsetWidth;
-            if (newHasRightScroll !== hasRightScroll) {
-                setHasRightScroll(newHasRightScroll);
-            }
-        });
+        const handleTabClick = React.useCallback(key => setActiveTab(key), []);
 
         const onArrowCLick = () => {
             const scroller = ref.current.querySelector('.section__panel:not(.section__panel_hidden)');
@@ -361,7 +363,7 @@
                                 className={'section__tab' + (key === activeTab ? ' section__tab_active' : '')}
                                 id={`tab_${key}`}
                                 aria-controls={`panel_${key}`}
-                                onClick={() => setActiveTab(key)}
+                                onClick={() => handleTabClick(key)}
                             >
                                 {TABS[key].title}
                             </li>
