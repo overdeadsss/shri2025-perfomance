@@ -40,19 +40,6 @@ const Header = React.memo(function Header() {
 });
 const Event = React.memo(function Event(props) {
   const ref = React.useRef();
-  const {
-    onSize
-  } = props;
-  React.useLayoutEffect(() => {
-    if (onSize) {
-      const width = ref.current.offsetWidth;
-      const height = ref.current.offsetHeight;
-      onSize({
-        width,
-        height
-      });
-    }
-  }, [onSize]);
   return /*#__PURE__*/React.createElement("li", {
     ref: ref,
     className: "event" + (props.slim ? " event_slim" : "")
@@ -181,30 +168,26 @@ for (let i = 0; i < 6; ++i) {
 const TABS_KEYS = Object.keys(TABS);
 function Main() {
   const ref = React.useRef();
-  const initedRef = React.useRef(false);
-  const [activeTab, setActiveTab] = React.useState("");
+  const [activeTab, setActiveTab] = React.useState(() => {
+    return new URLSearchParams(location.search).get("tab") || "all";
+  });
   const [hasRightScroll, setHasRightScroll] = React.useState(false);
   const sizesRef = React.useRef([]);
   React.useEffect(() => {
     sizesRef.current = [];
   }, [activeTab]);
-  React.useEffect(() => {
-    if (!activeTab && !initedRef.current) {
-      initedRef.current = true;
-      setActiveTab(new URLSearchParams(location.search).get("tab") || "all");
-    }
-  }, [activeTab]);
   const onSelectInput = React.useCallback(event => {
     setActiveTab(event.target.value);
   }, []);
-  const onSize = React.useCallback(size => {
-    sizesRef.current.push(size);
-    const itemsCount = TABS[activeTab]?.items.length || 0;
-    if (sizesRef.current.length === itemsCount) {
-      const sumWidth = sizesRef.current.reduce((acc, item) => acc + item.width, 0);
-      const newHasRightScroll = sumWidth > ref.current.offsetWidth;
-      setHasRightScroll(newHasRightScroll);
-    }
+  React.useEffect(() => {
+    if (!ref.current || !activeTab) return;
+    const observer = new ResizeObserver(entries => {
+      const sumWidth = entries.reduce((acc, entry) => acc + entry.contentRect.width, 0);
+      setHasRightScroll(sumWidth > ref.current.offsetWidth);
+    });
+    const elements = ref.current.querySelectorAll(".event");
+    elements.forEach(el => observer.observe(el));
+    return () => observer.disconnect();
   }, [activeTab]);
   const onArrowCLick = React.useCallback(() => {
     const scroller = ref.current.querySelector(".section__panel:not(.section__panel_hidden)");
@@ -339,9 +322,7 @@ function Main() {
     className: "section__panel-list"
   }, TABS[key].items.map((item, index) => /*#__PURE__*/React.createElement(Event, _extends({
     key: index
-  }, item, {
-    onSize: onSize
-  }))))) : null), hasRightScroll && /*#__PURE__*/React.createElement("div", {
+  }, item))))) : null), hasRightScroll && /*#__PURE__*/React.createElement("div", {
     className: "section__arrow",
     onClick: onArrowCLick
   }))));
