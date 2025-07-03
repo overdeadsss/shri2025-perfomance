@@ -93,7 +93,7 @@
           const { offsetWidth: width, offsetHeight: height } = ref.current;
           onSize({ width, height });
         }
-      }, [onSize]);
+      }, [onSize, title]);
     
       return (
         <li ref={ref} className={`event ${slim ? 'event_slim' : ''}`}>
@@ -261,17 +261,24 @@
         setActiveTab(event.target.value);
       };
     
-      const onSize = (size) => {
-        setSizes((prevSizes) => [...prevSizes, size]);
-      };
+      const onSize = React.useCallback((size) => {
+        setSizes((prevSizes) => {
+          return activeTab === prevSizes[0]?.tab ? [...prevSizes, { ...size, tab: activeTab }] : [{ ...size, tab: activeTab }];
+        });
+      }, [activeTab]);
     
-      React.useEffect(() => {
-        const sumWidth = sizes.reduce((acc, item) => acc + item.width, 0);
+    React.useEffect(() => {
+        if (!scrollWrapperRef.current) return;
+    
+        const activeTabSizes = sizes.filter(size => size.tab === activeTab);
+        const sumWidth = activeTabSizes.reduce((acc, item) => acc + item.width, 0);
+    
         const newHasRightScroll = sumWidth > scrollWrapperRef.current.offsetWidth;
+    
         if (newHasRightScroll !== hasRightScroll) {
           setHasRightScroll(newHasRightScroll);
         }
-      }, [sizes, hasRightScroll]);
+      }, [sizes, activeTab, hasRightScroll]);
     
       const onArrowClick = () => {
         const scroller = scrollWrapperRef.current.querySelector(
@@ -407,7 +414,7 @@
                   aria-labelledby={`tab_${key}`}
                 >
                   <ul className="section__panel-list">
-                    {TABS[key].items.map((item, index) => (
+                    {key === activeTab && TABS[key].items.map((item, index) => (
                       <Event key={index} {...item} onSize={onSize} />
                     ))}
                   </ul>
