@@ -77,9 +77,9 @@
             const width = ref.current.offsetWidth;
             const height = ref.current.offsetHeight;
             if (onSize) {
-                onSize(id, { width, height });
+                onSize({ width, height });
             }
-        }, [onSize, id]);
+        }, [onSize]);
     
         return (
             <li ref={ref} className={'event' + (slim ? ' event_slim' : '')}>
