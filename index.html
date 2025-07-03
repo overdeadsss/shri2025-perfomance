@@ -247,7 +247,8 @@
       const initedRef = React.useRef(false);
       const [activeTab, setActiveTab] = React.useState('');
       const [hasRightScroll, setHasRightScroll] = React.useState(false);
-      const currentTabSizes = React.useRef([]);
+      
+      const [currentTabItemSizes, setCurrentTabItemSizes] = React.useState([]);
     
       React.useEffect(() => {
         if (!activeTab && !initedRef.current) {
@@ -258,37 +259,29 @@
       }, [activeTab]);
     
       React.useEffect(() => {
-          currentTabSizes.current = [];
-          setHasRightScroll(false); 
+          setCurrentTabItemSizes([]);
       }, [activeTab]);
     
       const onSelectInput = (event) => {
         setActiveTab(event.target.value);
       };
-    
-      const onSize = React.useCallback((size) => {
-        currentTabSizes.current.push(size);
-          
-        if (scrollWrapperRef.current) {
-            const sumWidth = currentTabSizes.current.reduce((acc, item) => acc + item.width, 0);
-            const newHasRightScroll = sumWidth > scrollWrapperRef.current.offsetWidth;
-            if (newHasRightScroll !== hasRightScroll) {
-                setHasRightScroll(newHasRightScroll);
-            }
-        }
-      }, [hasRightScroll]);
         
+      const onSize = React.useCallback((size) => {
+        setCurrentTabItemSizes((prevSizes) => [...prevSizes, size]);
+      }, []);
+    
       React.useEffect(() => {
         if (!scrollWrapperRef.current) return;
-        
-        const sumWidth = currentTabSizes.current.reduce((acc, item) => acc + item.width, 0);
-        const newHasRightScroll = sumWidth > scrollWrapperRef.current.offsetWidth;
+    
+        const sumWidth = currentTabItemSizes.reduce((acc, item) => acc + item.width, 0);
+        const wrapperWidth = scrollWrapperRef.current.offsetWidth;
+        const newHasRightScroll = sumWidth > wrapperWidth;
     
         if (newHasRightScroll !== hasRightScroll) {
           setHasRightScroll(newHasRightScroll);
         }
-      }, [currentTabSizes.current.length, activeTab, hasRightScroll]);
-        
+      }, [currentTabItemSizes, scrollWrapperRef.current, hasRightScroll]);
+    
       const onArrowClick = React.useCallback(() => {
         const scroller = scrollWrapperRef.current.querySelector(
           '.section__panel:not(.section__panel_hidden)'
@@ -299,7 +292,7 @@
             behavior: 'smooth',
           });
         }
-      }, []);
+      }, []); 
     
       return (
         <main className="main">
